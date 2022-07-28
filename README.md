@@ -13,7 +13,8 @@ Added some features
 
 # Tally in work
 <br>
-https://raw.githubusercontent.com/ruizivo/tally-light-esp32-for-blackmagic-atem-switcher/master/Media/tally-in-action.mp4
+
+https://user-images.githubusercontent.com/12483796/181568676-afe5e105-cfe2-4e4d-999f-b96b512d1c30.mp4
 
 <br><br><br>
 
@@ -33,8 +34,12 @@ How to configure tally
 
 
 # Tally info screen and brightness
-<video src="https://raw.githubusercontent.com/ruizivo/tally-light-esp32-for-blackmagic-atem-switcher/master/Media/info-screen-brightness.mp4" controls="controls" style="max-width: 200px;">
-</video>
+
+
+
+https://user-images.githubusercontent.com/12483796/181568781-cc5526f5-ce25-4fa4-b03b-b6c0be4ed463.mp4
+
+
 <br><br><br>
 
 
