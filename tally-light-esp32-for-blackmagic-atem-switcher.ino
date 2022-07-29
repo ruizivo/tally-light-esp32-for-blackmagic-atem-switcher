@@ -46,9 +46,11 @@ IPAddress switcherIp(192, 168, 1, 30);        // IP address of the ATEM switcher
 char switcherIpString[15] = "192.168.1.30";   //IP address of the Tally Arbiter Server
 int cameraNumber = 1;
 char cameraNumberString[2] = "1";
+char rotationString[2] = "0";
 const String camName = "m5StickC " + String(cameraNumber);
 bool ledOn = false;
 int ledPin = 10;
+int rotation = 0;
 
 int PreviewTallyPrevious = 1;
 int ProgramTallyPrevious = 1;
@@ -56,8 +58,9 @@ int ProgramTallyPrevious = 1;
 ATEMstd AtemSwitcher;
 WiFiManager wm; // global wm instance
 
-WiFiManagerParameter custom_server("hostIP", "Blackmagic Atem", switcherIpString, 15, switcherIpString);  
-WiFiManagerParameter custom_cam_num("camNum", "Camera number(1-4)", cameraNumberString, 1, cameraNumberString);  
+WiFiManagerParameter custom_server("hostIP", "Blackmagic Atem", switcherIpString, 15);  
+WiFiManagerParameter custom_cam_num("camNum", "Camera number(1-4)", cameraNumberString, 1);  
+WiFiManagerParameter custom_rotation("rotationNum", "<br>Rotation screen(0-3)", rotationString, 1);  
 char customhtml[24] = "type=\"checkbox\"";
 WiFiManagerParameter custom_led_on("ledOn", "Led on", "T", 2, customhtml, WFM_LABEL_AFTER);
 
@@ -86,6 +89,14 @@ void loadPreferences(){
     strcpy(cameraNumberString, newCamNum.c_str());
     custom_cam_num.setValue(cameraNumberString, 1);
   }
+  if(preferences.getString("rotationNum").length() > 0){
+    String newRotation = preferences.getString("rotationNum");
+    Serial.println("Setting rotation as");
+    Serial.println(newRotation);
+    rotation = newRotation.toInt();
+    strcpy(rotationString, newRotation.c_str());
+    custom_rotation.setValue(rotationString, 1);
+  }
   if(preferences.getString("ledOn").length() > 0){
     String newLedOn = preferences.getString("ledOn");
     Serial.println("Setting led on as");
@@ -105,6 +116,8 @@ void setup() {
 
   // initialize the M5StickC object
   M5.begin();
+  M5.Lcd.setTextSize(2);
+  
   setCpuFrequencyMhz(80);    //Save battery by turning down the CPU clock
   btStop();                  //Save battery by turning off BlueTooth
 
@@ -148,6 +161,7 @@ void connectToNetwork() {
   wm.addParameter(&custom_server);
   wm.addParameter(&custom_cam_num);
   wm.addParameter(&custom_led_on);
+  wm.addParameter(&custom_rotation);
   wm.setSaveParamsCallback(saveParamCallback);
 
   // custom menu via array or vector
@@ -220,10 +234,17 @@ void saveParamCallback() {
   String str_ledOn = getParam("ledOn");
   Serial.println("Saving new value of led on");
   Serial.println(str_ledOn);
+
+  Serial.println("PARAM Rotation screen = " + getParam("rotationNum"));
+  String str_rotation = getParam("rotationNum");
+  Serial.println("Saving new rotation screen");
+  Serial.println(str_rotation);
   
   preferences.begin("blackmagic-atem", false);
+  
   preferences.putString("hostIP", str_hostIP);
   preferences.putString("camNum", str_camNum);
+  preferences.putString("rotationNum", str_rotation);
   if(str_ledOn == "T")
     preferences.putString("ledOn", "T");
   else
@@ -298,11 +319,23 @@ void drawLabel(unsigned long int screenColor, unsigned long int labelColor, bool
   if (ledOn) {
     digitalWrite(ledPin, ledValue);
   }
+  M5.Lcd.setRotation(rotation);
   M5.Lcd.fillScreen(screenColor);
   M5.Lcd.setTextColor(labelColor, screenColor);
-  M5.Lcd.setRotation(0);
-  M5.Lcd.setTextSize(2);
-  M5.Lcd.drawString(String(cameraNumber), 15, 40, 8);
+ 
+  int fontSize = 8;
+  if(rotation == 1 || rotation== 3)
+    fontSize = 7;
+  else
+    fontSize = 8;
+  drawStringInCenter(String(cameraNumber), fontSize);
+}
+
+void drawStringInCenter(String input, int font) {
+  int datumPrevious = M5.Lcd.getTextDatum();
+  M5.Lcd.setTextDatum(MC_DATUM);
+  M5.Lcd.drawString(input, M5.Lcd.width() / 2, M5.Lcd.height() / 2, font);
+  M5.Lcd.setTextDatum(datumPrevious);
 }
 
 void showSettings() {
@@ -313,9 +346,7 @@ void showSettings() {
   //displays the current network connection and Tally Arbiter server data
   M5.Lcd.setCursor(0, 10);
   M5.Lcd.fillScreen(TFT_BLACK);
-  //M5.Lcd.setFreeFont(FSS9);
   M5.Lcd.setRotation(3);
-  M5.Lcd.setTextSize(2);
   M5.Lcd.setTextColor(WHITE, BLACK);
   M5.Lcd.println("SSID: " + String(WiFi.SSID()));
   M5.Lcd.println(WiFi.localIP());
