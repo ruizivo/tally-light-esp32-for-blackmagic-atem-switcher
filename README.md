@@ -6,6 +6,9 @@ Added some features
 	 - IP address of Atem
 	 - Number of camera 
 	 - Led on/off
+ - added two functions for each button
+ 	- btnA = show info screen(short press) and change camera number(long press)
+	- btnB = change brightness(short press)  and change rotation(long press)
  - Second screen to see the info description (Based on the work of josephdadams)
  - Change brightness by button (Based on the work of josephdadams)
 
@@ -14,7 +17,7 @@ Added some features
 # Tally in work
 <br>
 
-https://user-images.githubusercontent.com/12483796/181568676-afe5e105-cfe2-4e4d-999f-b96b512d1c30.mp4
+https://user-images.githubusercontent.com/12483796/182149933-f016433e-9b17-4613-95fc-ca60fa36a0d8.mp4
 
 <br><br><br>
 
@@ -35,14 +38,16 @@ How to configure tally
 
 # Tally info screen and brightness
 
-
-
 https://user-images.githubusercontent.com/12483796/181568781-cc5526f5-ce25-4fa4-b03b-b6c0be4ed463.mp4
-
 
 <br><br><br>
 
 
+# Tally in work
+
+https://user-images.githubusercontent.com/12483796/181568676-afe5e105-cfe2-4e4d-999f-b96b512d1c30.mp4
+
+<br><br><br>
 
 For more information, see:
 https://oneguyoneblog.com/2020/06/13/tally-light-esp32-for-blackmagic-atem-switcher/
