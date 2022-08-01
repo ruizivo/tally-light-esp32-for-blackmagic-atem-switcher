@@ -46,11 +46,22 @@ IPAddress switcherIp(192, 168, 1, 30);        // IP address of the ATEM switcher
 char switcherIpString[15] = "192.168.1.30";   //IP address of the Tally Arbiter Server
 int cameraNumber = 1;
 char cameraNumberString[2] = "1";
-char rotationString[2] = "0";
-const String camName = "m5StickC " + String(cameraNumber);
-bool ledOn = false;
-int ledPin = 10;
 int rotation = 0;
+char rotationString[2] = "0";
+bool ledOn = false;
+const String camName = "m5StickC " + String(cameraNumber);
+int ledPin = 10;
+
+
+long buttonTimer = 0;
+long longPressTime = 500;
+boolean buttonActive = false;
+boolean longPressActive = false;
+
+long longPressTime_A = 500;
+boolean buttonActive_A = false;
+boolean longPressActive_A = false;
+
 
 int PreviewTallyPrevious = 1;
 int ProgramTallyPrevious = 1;
@@ -121,10 +132,8 @@ void setup() {
   setCpuFrequencyMhz(80);    //Save battery by turning down the CPU clock
   btStop();                  //Save battery by turning off BlueTooth
 
-
   loadPreferences();
 
-  
   pinMode(ledPin, OUTPUT);  // LED: 1 is on Program (Tally)
   digitalWrite(ledPin, HIGH); // off
 
@@ -139,6 +148,115 @@ void setup() {
   AtemSwitcher.connect();
 }
 
+void loop() {
+  if(portalRunning){
+    wm.process();
+  }
+
+  buttonCheck();
+  
+  if(currentScreen == 0){
+    evaluateMode();
+  }
+}
+
+void buttonCheck(){
+  btnM5.update();
+  M5.update();
+  
+  if (M5.BtnA.isPressed()) {
+    if (buttonActive_A == false) {
+      buttonActive_A = true;
+      buttonTimer = millis();
+    }
+    if ((millis() - buttonTimer > longPressTime_A) && (longPressActive_A == false)) {
+      longPressActive_A = true;
+      //long press
+      changeCameraNumber();
+    }
+  } else {
+    if (buttonActive_A == true) {
+      if (longPressActive_A == true) {
+        longPressActive_A = false;
+      } else {
+        //short press
+        switchScreen();
+      }
+      buttonActive_A = false;
+    }
+  }
+  
+  if (M5.BtnB.isPressed()) {
+    if (buttonActive == false) {
+      buttonActive = true;
+      buttonTimer = millis();
+    }
+    if ((millis() - buttonTimer > longPressTime) && (longPressActive == false)) {
+      longPressActive = true;
+      //long press
+      changeRotation();
+    }
+  } else {
+    if (buttonActive == true) {
+      if (longPressActive == true) {
+        longPressActive = false;
+      } else {
+        //short press
+        updateBrightness();
+      }
+      buttonActive = false;
+    }
+  }
+}
+
+void switchScreen(){
+  switch (currentScreen) {
+      case 0:
+        showSettings();
+        currentScreen = 1;
+        break;
+      case 1:
+        showTally();
+        currentScreen = 0;
+        break;
+  }
+}
+
+void changeCameraNumber(){
+  Serial.println("Changing camera number");
+  cameraNumber = (cameraNumber % 4) + 1;
+  Serial.printf("New camera number set: %d\n", rotation-1);
+  ProgramTallyPrevious = -1;
+  evaluateMode();
+  
+  preferences.begin("blackmagic-atem", false);
+  preferences.putString("camNum", String(cameraNumber));
+  preferences.end();
+}
+
+void changeRotation(){
+  Serial.println("Changing Rotation");
+  if(++rotation>3)
+    rotation=0;
+  Serial.printf("New Rotation set: %d\n", rotation);
+  ProgramTallyPrevious = -1;
+  evaluateMode();
+  preferences.begin("blackmagic-atem", false);
+  preferences.putString("rotationNum", String(rotation));
+  preferences.end();
+}
+
+void updateBrightness() {
+  Serial.println("Changing Brightness");
+  if(currentBrightness >= 12) {
+    currentBrightness = 7;
+  } else {
+    currentBrightness++;
+  }
+  M5.Axp.ScreenBreath(currentBrightness);
+  Serial.printf("New Brightness set: %d\n", currentBrightness);
+}
+
 void logger(String strLog, String strType) {
   if (strType == "info") {
     Serial.println(strLog);
@@ -151,13 +269,10 @@ void logger(String strLog, String strType) {
 
 void connectToNetwork() {
 
-
   WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
 
   logger("Connecting to SSID: " + String(WiFi.SSID()), "info");
 
-
-  
   wm.addParameter(&custom_server);
   wm.addParameter(&custom_cam_num);
   wm.addParameter(&custom_led_on);
@@ -183,38 +298,6 @@ void connectToNetwork() {
     //if you get here you have connected to the WiFi
     Serial.println("connected...yay :)");
   }
-}
-
-
-void loop() {
-  if(portalRunning){
-    wm.process();
-  }
-
-  btnM5.update();
-  btnAction.update();
-
-  if (btnM5.isClick()) {
-    switch (currentScreen) {
-      case 0:
-        showSettings();
-        currentScreen = 1;
-        break;
-      case 1:
-        showTally();
-        currentScreen = 0;
-        break;
-    }
-  }
-
-  if (btnAction.isClick()) {
-    updateBrightness();
-  }
-
-  if(currentScreen == 0){
-    evaluateMode();
-  }
-
 }
 
 void saveParamCallback() {
@@ -263,15 +346,6 @@ String getParam(String name) {
     value = wm.server->arg(name);
   }
   return value;
-}
-
-void updateBrightness() {
-  if(currentBrightness >= 12) {
-    currentBrightness = 7;
-  } else {
-    currentBrightness++;
-  }
-  M5.Axp.ScreenBreath(currentBrightness);
 }
 
 void evaluateMode() {
@@ -339,6 +413,7 @@ void drawStringInCenter(String input, int font) {
 }
 
 void showSettings() {
+  loadPreferences();
   wm.startWebPortal();
   portalRunning = true;
   digitalWrite(ledPin, HIGH);
